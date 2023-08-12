@@ -195,7 +195,7 @@ Widget searchByPid(BuildContext context, String searchKeyword) {
       title: Text(S.of(context).search_by_pid_tip(pidMatch.group(0)!)),
       onTap: () {
         submit(context, searchKeyword);
-        goToPIDResultPage(context, int.parse(pidMatch.group(1)!));
+        goToPIDResultPage(context, int.parse(pidMatch.group(0)!));
       },
     );
   } else {
