@@ -156,6 +156,7 @@ class _OTSearchPageState extends State<OTSearchPage> {
 
 /// Some search suggestion providers.
 final RegExp pidPattern = RegExp(r'#([0-9]+)');
+final RegExp numPidPattern = RegExp(r'^[0-9]+$');
 final RegExp floorPattern = RegExp(r'##([0-9]+)');
 
 final GlobalKey _globalKey = GlobalKey();
@@ -184,7 +185,8 @@ Widget searchByText(BuildContext context, String searchKeyword) {
 }
 
 Widget searchByPid(BuildContext context, String searchKeyword) {
-  final pidMatch = pidPattern.firstMatch(searchKeyword);
+  final pidMatch = pidPattern.firstMatch(searchKeyword) ??
+      numPidPattern.firstMatch(searchKeyword);
   if (pidMatch != null) {
     return ListTile(
       leading: PlatformX.isMaterial(context)
