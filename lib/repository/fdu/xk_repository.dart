@@ -19,6 +19,7 @@ import 'dart:convert';
 
 import 'package:dan_xi/common/constant.dart';
 import 'package:dan_xi/model/person.dart';
+import 'package:dan_xi/model/xk.dart';
 import 'package:dan_xi/model/time_table.dart';
 import 'package:dan_xi/provider/settings_provider.dart';
 import 'package:dan_xi/repository/base_repository.dart';
@@ -32,7 +33,7 @@ import 'package:html/dom.dart' as dom;
 
 class XkStage {
   bool valid;
-  int? xkNo;
+  int? semester;
   String? name;
   DateTime? startElectTime;
   DateTime? endElectTime;
@@ -48,7 +49,7 @@ class XkResult {
 }
 
 class XkCourseInfo {
-
+  XkCourseInfo();
 }
 
 class XkRepository extends BaseRepositoryWithDio {
@@ -57,6 +58,8 @@ class XkRepository extends BaseRepositoryWithDio {
       'https://uis.fudan.edu.cn/authserver/login?service=http%3A%2F%2Fwww.urp.fudan.edu.cn%3A92%2Feams%2FstdElectCourse.action';
   static const String XK_URL =
       'http://www.urp.fudan.edu.cn:92/eams/stdElectCourse.action';
+  static const String XK_MAIN_URL =
+      'http://www.urp.fudan.edu.cn:92/eams/stdElectCourse!defaultPage.action'; //?electionProfile.id=2685
   static const String QUERY_URL =
       'http://www.urp.fudan.edu.cn:92/eams/stdElectCourse!queryLesson.action'; //?profileId=2685
   static const String OPERATOR_URL =
@@ -83,9 +86,9 @@ class XkRepository extends BaseRepositoryWithDio {
       RegExpMatch? xkNameMatch = xkNamePattern.firstMatch(xkPage.data!);
       stage.name = xkNameMatch?.group(2);
 
-      RegExp xkNoPattern = RegExp(r"name='electionProfile.id' value='(\d+)'");
-      RegExpMatch? xkNoMatch = xkNoPattern.firstMatch(xkPage.data!);
-      stage.xkNo = int.tryParse(xkNoMatch!.group(1)!);
+      RegExp semesterPattern = RegExp(r"name='electionProfile.id' value='(\d+)'");
+      RegExpMatch? semesterMatch = semesterPattern.firstMatch(xkPage.data!);
+      stage.semester = int.tryParse(semesterMatch!.group(1)!);
 
       DateFormat timeFormat = DateFormat("yyyy-MM-dd HH:mm");
       RegExp timePattern = RegExp(
@@ -110,6 +113,18 @@ class XkRepository extends BaseRepositoryWithDio {
     return XkStage(false);
   }
 
+  Future<XkCurrent?> loadXkCurrent(PersonInfo? info, int semester) {
+    return UISLoginTool.tryAsyncWithAuth(
+        dio, XK_LOGIN_URL, cookieJar!, info, () => _loadXkCurrent(semester));
+  }
+
+  Future<XkCurrent?> _loadXkCurrent(int semester) async {
+    Response<String> electedResponse = await dio.post(
+        XK_MAIN_URL,
+        data: "electionProfile.id=$semester");
+
+  }
+
   Future<XkResult?> electCourse(PersonInfo? info, int semester, int courseId) {
     return UISLoginTool.tryAsyncWithAuth(
         dio, XK_LOGIN_URL, cookieJar!, info, () => _electCourse(semester, courseId));
@@ -125,16 +140,53 @@ class XkRepository extends BaseRepositoryWithDio {
   }
 
   Future<XkResult?> _dropCourse(int semester, int courseId) async {
-    //TODO
+    Response<String> response = await dio.post(
+        "$OPERATOR_URL?profileId=$semester",
+        data: "optype=&operator0=&captcha_response=captcha_response");
+    if (response.data?.contains('成功') ?? false) {
+      return XkResult(true);
+    }
+    XkResult result = XkResult(false);
+    if (response.data != null){
+      if (response.data!.contains('失败')){
+        //TODO
+      } else {
+        result.msg = 'Unknown Error';
+      }
+    } else {
+      result.msg = 'Null Response!';
+    }
+    return result;
   }
 
-  Future<XkCourseInfo?> queryCourse(PersonInfo? info, int semester, int courseId) {
+  Future<List<XkCourseInfo>?> queryCourseByName(PersonInfo? info, int semester, String courseName) {
+    String queryParam = 'lessonNo=&courseCode=&courseName=$courseName';
     return UISLoginTool.tryAsyncWithAuth(
-        dio, XK_LOGIN_URL, cookieJar!, info, () => _queryCourse(semester, courseId));
+        dio, XK_LOGIN_URL, cookieJar!, info, () => _queryCourse(semester, queryParam));
   }
 
-  Future<XkCourseInfo?> _queryCourse(int semester, int courseId) async {
-    //TODO
+  Future<List<XkCourseInfo>?> queryCourseByCode(PersonInfo? info, int semester, String courseCode) {
+    String queryParam = 'lessonNo=&courseCode=$courseCode&courseName=';
+    return UISLoginTool.tryAsyncWithAuth(
+        dio, XK_LOGIN_URL, cookieJar!, info, () => _queryCourse(semester, queryParam));
+  }
+
+  Future<List<XkCourseInfo>?> queryCourseByNo(PersonInfo? info, int semester, String courseNo) {
+    String queryParam = 'lessonNo=$courseNo&courseCode=&courseName=';
+    return UISLoginTool.tryAsyncWithAuth(
+        dio, XK_LOGIN_URL, cookieJar!, info, () => _queryCourse(semester, queryParam));
+  }
+
+  Future<List<XkCourseInfo>?> _queryCourse(int semester, String queryParam) async {
+    List<XkCourseInfo> result = [];
+    Response<String> response = await dio.post(
+        "$QUERY_URL?profileId=$semester",
+        data: queryParam);
+    if (response.data == null){
+      return result;
+    } else {
+      //TODO
+    }
   }
 
   @override
