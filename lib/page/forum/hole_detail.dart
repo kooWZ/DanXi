@@ -37,20 +37,19 @@ import 'package:dan_xi/repository/forum/forum_repository.dart';
 import 'package:dan_xi/util/master_detail_view.dart';
 import 'package:dan_xi/util/noticing.dart';
 import 'package:dan_xi/util/platform_universal.dart';
+import 'package:dan_xi/widget/forum/forum_widgets.dart';
+import 'package:dan_xi/widget/forum/ottag_selector.dart';
+import 'package:dan_xi/widget/forum/post_render.dart';
+import 'package:dan_xi/widget/forum/render/base_render.dart';
+import 'package:dan_xi/widget/forum/render/render_impl.dart';
 import 'package:dan_xi/widget/libraries/future_widget.dart';
 import 'package:dan_xi/widget/libraries/paged_listview.dart';
 import 'package:dan_xi/widget/libraries/platform_app_bar_ex.dart';
 import 'package:dan_xi/widget/libraries/platform_context_menu.dart';
 import 'package:dan_xi/widget/libraries/top_controller.dart';
-import 'package:dan_xi/widget/forum/ottag_selector.dart';
-import 'package:dan_xi/widget/forum/post_render.dart';
-import 'package:dan_xi/widget/forum/render/base_render.dart';
-import 'package:dan_xi/widget/forum/render/render_impl.dart';
-import 'package:dan_xi/widget/forum/forum_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_progress_dialog/flutter_progress_dialog.dart';
 import 'package:intl/intl.dart';
@@ -143,6 +142,8 @@ class BBSPostDetailState extends State<BBSPostDetail> {
       Search(keyword: var searchKeyword) => await ForumRepository.getInstance()
           .loadSearchResults(searchKeyword,
               startFloor: _listViewController.length()),
+      MyReplies() => await ForumRepository.getInstance()
+          .loadUserFloors(startFloor: _listViewController.length()),
       PunishmentHistory() => await loadPunishmentHistory(page),
     };
 
@@ -189,6 +190,8 @@ class BBSPostDetailState extends State<BBSPostDetail> {
       _renderModel = Search(widget.arguments!['searchKeyword']);
     } else if (widget.arguments?['punishmentHistory'] == true) {
       _renderModel = PunishmentHistory();
+    } else if (widget.arguments?['myReplies'] == true) {
+      _renderModel = MyReplies();
     }
 
     shouldScrollToEnd = widget.arguments?['scroll_to_end'] == true;
@@ -295,6 +298,7 @@ class BBSPostDetailState extends State<BBSPostDetail> {
           child: switch (_renderModel) {
             Normal(hole: var hole) => Text("#${hole.hole_id}"),
             Search() => Text(S.of(context).search_result),
+            MyReplies() => Text(S.of(context).list_my_replies),
             PunishmentHistory() => Text(S.of(context).list_my_punishments),
           },
         ),
@@ -1019,6 +1023,8 @@ class BBSPostDetailState extends State<BBSPostDetail> {
         Search(keyword: var searchKeyword) =>
           await ForumRepository.getInstance().loadSearchResults(searchKeyword,
               startFloor: pageIndex * Constant.POST_COUNT_PER_PAGE),
+        MyReplies() => (await ForumRepository.getInstance().loadUserFloors(
+            startFloor: pageIndex * Constant.POST_COUNT_PER_PAGE)),
         PunishmentHistory() =>
           (await ForumRepository.getInstance().getPunishmentHistory())
               ?.map((e) => e.floor!)
@@ -1208,5 +1214,7 @@ class Search extends RenderModel {
 
   Search(this.keyword);
 }
+
+class MyReplies extends RenderModel {}
 
 class PunishmentHistory extends RenderModel {}

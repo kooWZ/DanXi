@@ -504,8 +504,9 @@ class SettingsSubpageState extends PlatformSubpageState<SettingsSubpage> {
                                     context.read<SettingsProvider>().proxy,
                                 hintText:
                                     S.of(context).proxy_setting_input_hint);
-                            if (!context.mounted || email == null)
+                            if (!context.mounted || email == null) {
                               return; // return if cancelled
+                            }
                             if (email.isEmpty) email = null;
                             context.read<SettingsProvider>().proxy = email;
                             await Noticing.showNotice(context,
@@ -641,7 +642,7 @@ class SettingsSubpageState extends PlatformSubpageState<SettingsSubpage> {
                     context.read<ForumProvider>().userInfo!.user_id ?? "null")
                 : S.of(context).not_logged_in),
             children: [
-              if (context.read<ForumProvider>().isUserInitialized) ...[
+              if (context.watch<ForumProvider>().isUserInitialized) ...[
                 FutureWidget<OTUser?>(
                   future: ForumRepository.getInstance().getUserProfile(),
                   successBuilder:
@@ -826,6 +827,13 @@ class SettingsSubpageState extends PlatformSubpageState<SettingsSubpage> {
                   title: Text(S.of(context).list_my_posts),
                   onTap: () => smartNavigatorPush(context, '/bbs/discussions',
                       arguments: {'showFilterByMe': true},
+                      forcePushOnMainNavigator: true),
+                ),
+                ListTile(
+                  leading: nil,
+                  title: Text(S.of(context).list_my_replies),
+                  onTap: () => smartNavigatorPush(context, '/bbs/postDetail',
+                      arguments: {'myReplies': true},
                       forcePushOnMainNavigator: true),
                 ),
                 ListTile(
